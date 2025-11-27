@@ -52,12 +52,6 @@ export const read_pdf = async (pdfPath: string) => {
       }
     });
 
-    const orderNumber = Number(text.replaceAll(':', '').split('Order Number')[1]?.split('\n')[0]) || null;
-
-    if (!orderNumber) {
-      console.log(`cant read page ${pageNumber}`, text);
-    };
-
     const newPdf = await PDFDocument.create();
     const pngImage = await newPdf.embedJpg(jpgBuffer);
 
@@ -72,7 +66,7 @@ export const read_pdf = async (pdfPath: string) => {
 
     const pdfBytes = await newPdf.save();
 
-    return [pdfBytes, orderNumber] as const;
+    return [pdfBytes, text] as const;
   };
 
   return {
