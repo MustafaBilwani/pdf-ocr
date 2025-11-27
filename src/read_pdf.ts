@@ -4,7 +4,7 @@ import * as fs from 'node:fs/promises';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import type Canvas from "canvas";
 import { PDFDocument } from 'pdf-lib'
-import { worker } from './index.js';
+import type { Worker } from 'tesseract.js';
 
 type Factory = {
   canvas: Canvas.Canvas;
@@ -17,7 +17,7 @@ export interface CanvasFactory {
   ): Factory;
 }
 
-export const read_pdf = async (pdfPath: string) => {
+export const read_pdf = async (pdfPath: string, worker: Worker) => {
 
   const data = new Uint8Array(await fs.readFile(pdfPath));
 

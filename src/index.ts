@@ -4,10 +4,22 @@ const require = createRequire(import.meta.url);
 import { promises as fs } from "node:fs";
 import { read_pdf } from './read_pdf.js';
 import path from 'node:path';
-import { createWorker } from "tesseract.js";
+import { createWorker, type Worker } from "tesseract.js";
 import { glob } from "glob";
 
-export const worker = await createWorker('eng');
+const workersQuantity = 3;
+
+console.log(`using ${workersQuantity} workers`)
+console.time('create workers')
+
+export const workers = await Promise.all(
+  Array.from({ length: workersQuantity }, async () => ({
+    worker: await createWorker('eng'),
+    isfree: true
+  }))
+);
+
+console.timeEnd('create workers')
 
 const prevDir = path.resolve('../');
 
@@ -24,36 +36,33 @@ async function main() {
   await makeOutputAndCompletedDirs();
 
   console.time('Total time taken');
-
-  for await (const pdf of files) {
-    const pdfAbsolutePath = path.join(prevDir, pdf);
-
-    await processPdf(pdfAbsolutePath);
-
-    const pdfDirectory = path.dirname(pdfAbsolutePath);
-
-    const newDirName = path.join(prevDir, 'completed', path.relative(prevDir, pdfDirectory));
-
-    await fs.mkdir(newDirName, { recursive: true });
-
-    let newPath = path.join(newDirName, path.basename(pdfAbsolutePath, '.pdf'));
-    newPath = await findAvailableFileName(newPath);
-
-    await fs.rename(pdfAbsolutePath, newPath);
-  };
-
-  await worker.terminate();
   
+  await Promise.all(
+    workers.map(async ({ worker }) => {
+
+      while (files.length > 0) {
+
+        const pdf = files.shift()!
+        const pdfAbsolutePath = path.join(prevDir, pdf);
+        await processPdf(pdfAbsolutePath, worker);
+      
+      }
+      
+      await worker.terminate()
+    })
+  )
+
   await clearEmptyDirs();
 
   console.timeEnd('Total time taken');
 };
 
-async function processPdf(pdfPath: string) {
 
-  console.time(pdfPath);
+async function processPdf(pdfAbsolutePath: string, worker: Worker) {
 
-  const { length, getPage } = await read_pdf(pdfPath);
+  // console.time(pdfAbsolutePath);
+
+  const { length, getPage } = await read_pdf(pdfAbsolutePath, worker);
 
   for (let counter = 1; counter <= length; counter++) {
 
@@ -74,7 +83,19 @@ async function processPdf(pdfPath: string) {
 
     };
   };
-  console.timeEnd(pdfPath);
+
+  // console.timeEnd(pdfAbsolutePath);
+
+  const pdfDirectory = path.dirname(pdfAbsolutePath);
+
+  const newDirName = path.join(prevDir, 'completed', path.relative(prevDir, pdfDirectory));
+
+  await fs.mkdir(newDirName, { recursive: true });
+
+  let newPath = path.join(newDirName, path.basename(pdfAbsolutePath, '.pdf'));
+  newPath = await findAvailableFileName(newPath);
+
+  await fs.rename(pdfAbsolutePath, newPath);
 };
 
 async function findAvailableFileName(fileName: string) {
