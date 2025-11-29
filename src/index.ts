@@ -36,7 +36,7 @@ async function main() {
   await makeOutputAndCompletedDirs();
 
   console.time('Total time taken');
-  
+
   await Promise.all(
     workers.map(async ({ worker }) => {
 
@@ -45,9 +45,9 @@ async function main() {
         const pdf = files.shift()!
         const pdfAbsolutePath = path.join(prevDir, pdf);
         await processPdf(pdfAbsolutePath, worker);
-      
+
       }
-      
+
       await worker.terminate()
     })
   )
@@ -68,20 +68,29 @@ async function processPdf(pdfAbsolutePath: string, worker: Worker) {
 
     const [image, text] = await getPage(counter);
 
-    const trimmedText = text.replaceAll(':', '').split('Order Number')[1]?.split('\n')[0]?.trim() || '';
+    if (text.includes('simplicity')) continue;
 
-    if (Number(trimmedText)) {
+    if (text.includes('Order Number')) {
 
-      const newPath = await findAvailableFileName(path.join(prevDir, 'output', `${trimmedText}`));
-      await fs.writeFile(newPath, image);
+      const trimmedText = text.replaceAll(':', '').split('Order Number')[1]?.replaceAll(' ', '').split('\n')[0] || '';
 
+      if (trimmedText.length === 15) {
+
+        const newPath = await findAvailableFileName(path.join(prevDir, 'output', `${trimmedText}`));
+        await fs.writeFile(newPath, image);
+      } else {
+
+        await fs.mkdir(path.join(prevDir, 'unrecognised'), { recursive: true });
+        const newPath = await findAvailableFileName(path.join(prevDir, 'unrecognised', trimmedText));
+        await fs.writeFile(newPath, image);
+      }
     } else {
 
       await fs.mkdir(path.join(prevDir, 'unrecognised'), { recursive: true });
-      const newPath = await findAvailableFileName(path.join(prevDir, 'unrecognised', trimmedText));
+      const newPath = await findAvailableFileName(path.join(prevDir, 'unrecognised', 'unrecognised'));
       await fs.writeFile(newPath, image);
+    }
 
-    };
   };
 
   // console.timeEnd(pdfAbsolutePath);
