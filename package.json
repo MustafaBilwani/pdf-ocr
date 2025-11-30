@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "npx tsc & node dist/index.js",
     "build": "npx tsc && npx eslint",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "details": "npx tsc & node dist/read_details/index.js"
   },
   "keywords": [],
   "author": "",
