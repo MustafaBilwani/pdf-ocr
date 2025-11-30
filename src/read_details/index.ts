@@ -28,7 +28,7 @@ async function main() {
 
   const files = await glob("**/*.pdf", {
     cwd: prevDir,
-    ignore: ['output/**', 'completed/**', 'unrecognised/**'],
+    ignore: ['output/**', 'unrecognised/**'],
   });
   console.log(files.length, 'files found');
 
