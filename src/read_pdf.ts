@@ -25,6 +25,14 @@ export const read_pdf = async (pdfPath: string, worker: Worker) => {
     data,
   }).promise;
 
+  const sampleRec = {
+    totalHeight: 1083,
+    totalWidth: 765,
+    top: 594,
+    left: 147,
+    width: 519,
+    height: 55
+  };
 
   async function getPage(pageNumber: number) {
 
@@ -45,19 +53,19 @@ export const read_pdf = async (pdfPath: string, worker: Worker) => {
     const jpgBuffer = canvas.toBuffer("image/jpeg", {});
     const { data: { text } } = await worker.recognize(jpgBuffer, {
       rectangle: {
-        height: Math.round(viewport.height * 0.0475624),
-        left: Math.round(viewport.width * 0.2352941176470588),
-        top: Math.round(viewport.height * 0.5469678953626635),
-        width: Math.round(viewport.width * 0.5882352941176471)
+        height: sampleRec.height / sampleRec.totalHeight * viewport.height,
+        width: sampleRec.width / sampleRec.totalWidth * viewport.width,
+        top: sampleRec.top / sampleRec.totalHeight * viewport.height,
+        left: sampleRec.left / sampleRec.totalWidth * viewport.width,
       }
     });
 
     const newPdf = await PDFDocument.create();
-    const pngImage = await newPdf.embedJpg(jpgBuffer);
+    const jpgImage = await newPdf.embedJpg(jpgBuffer);
 
-    const pageDims = pngImage.scale(1);
+    const pageDims = jpgImage.scale(1);
     const pdfPage = newPdf.addPage([pageDims.width, pageDims.height]);
-    pdfPage.drawImage(pngImage, {
+    pdfPage.drawImage(jpgImage, {
       x: 0,
       y: 0,
       width: pageDims.width,
